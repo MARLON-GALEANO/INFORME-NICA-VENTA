@@ -1,56 +1,57 @@
-Nivel 1
+#Nivel 1
 Objetivos:
- 1.Desarrollar un microservicio en flask que implemente la llamada [GET] /active con una respuesta dummy fija.
- 2.Crear una imagen docker que contenga dicho microservicio y publicarla en dockerhub.
+1.Desarrollar un microservicio en flask que implemente la llamada [GET] /active con una respuesta dummy fija.
+2.Crear una imagen docker que contenga dicho microservicio y publicarla en dockerhub.
 Se precedio a realizar el siguiente Procedimiento para crear el API/Micro servicio.
 Realizado los siguiente Procedimientos.
 Estructura de carpetas:
-    ├── Nivel-1
-    │   ├── app
-    │   │   ├── app.py
-    │   │   ├── dummy.py
-    │   │   └── requirements.txt
-    │   └── Dockerfile
-    
-   FROM python
+├── Nivel-1
+│ ├── app
+│ │ ├── app.py
+│ │ ├── dummy.py
+│ │ └── requirements.txt
+│ └── Dockerfile
+
+FROM python
 COPY app /app
 RUN pip install -r /app/requirements.txt
 WORKDIR app
-CMD ["python", "app.py"]
+CMD [“python”, “app.py”]
 EXPOSE 5000
 app.py
 from flask import Flask, jsonify, request
 import dummy_res
 import os
-app = Flask(__name__)
+app = Flask(name)
 #RUTA DUMMY RESPONSE
-@app.route('/active')
+@app.route(’/active’)
 def get_dummy():
-    return jsonify(dummy_res.dummy_ventas)
+return jsonify(dummy_res.dummy_ventas)
 #PUERTO POR DEFECTO 5000
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0'
-   
-   dummy_res.py
-    dummy_ventas = [{
-    "active": True,
-    "country": "ni",
-    "city": "Leon",
-  }
+if name == ‘main’:
+app.run(debug=True, host=‘0.0.0.0’
+
+dummy_res.py
+dummy_ventas = [{
+“active”: True,
+“country”: “ni”,
+“city”: “Leon”,
+}
 ]
 
 requirements
-Click==7.0
-Flask==1.1.1
-Flask-MySQL==1.4.0
-Flask-MySQLdb==0.2.0
-itsdangerous==1.1.0
-Jinja2==2.10.1
-MarkupSafe==1.1.1
-mysqlclient==1.4.2.post1
-PyMySQL==0.9.3
-redis==3.2.1
+Click7.0
+Flask1.1.1
+Flask-MySQL1.4.0
+Flask-MySQLdb0.2.0
+itsdangerous1.1.0
+Jinja22.10.1
+MarkupSafe1.1.1
+mysqlclient1.4.2.post1
+PyMySQL0.9.3
+redis3.2.1
 Werkzeug==0.15.5
+
 
 Nivel 2
 Objetivos:
