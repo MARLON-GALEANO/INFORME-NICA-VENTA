@@ -671,7 +671,7 @@ if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
     
     
-url Docker Hub
+url del Docker Hub
 https://cloud.docker.com/repository/docker/galeanom26/nicaventa
         
 
