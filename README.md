@@ -1,4 +1,4 @@
-"""Nivel 1
+Nivel 1
 Objetivos:
  1.Desarrollar un microservicio en flask que implemente la llamada [GET] /active con una respuesta dummy fija.
  2.Crear una imagen docker que contenga dicho microservicio y publicarla en dockerhub.
@@ -6,11 +6,11 @@ Se precedio a realizar el siguiente Procedimiento para crear el API/Micro servic
 Realizado los siguiente Procedimientos.
 Estructura de carpetas:
     ├── Nivel-1
-    │   ├── app
+    │   ├── ""app
     │   │   ├── app.py
     │   │   ├── dummy.py
     │   │   └── requirements.txt
-    │   └── Dockerfile
+    │   └── Dockerfile""
     
    FROM python
 COPY app /app
