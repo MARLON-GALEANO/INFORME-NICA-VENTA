@@ -672,7 +672,7 @@ if __name__ == '__main__':
     
     
 url del Docker Hub
-https://cloud.docker.com/repository/docker/galeanom26/nicaventa
+https://cloud.docker.com/repository/docker/galeanom26/nicaventa/tags
         
 
 
