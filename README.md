@@ -6,11 +6,11 @@ Se precedio a realizar el siguiente Procedimiento para crear el API/Micro servic
 Realizado los siguiente Procedimientos.
 Estructura de carpetas:
     ├── Nivel-1
-    │   ├── ""app
+    │   ├── app
     │   │   ├── app.py
     │   │   ├── dummy.py
     │   │   └── requirements.txt
-    │   └── Dockerfile""
+    │   └── Dockerfile
     
    FROM python
 COPY app /app
@@ -408,6 +408,7 @@ Objetivos:
 3.Añadir políticas de cacheo de forma que si se solicita [POST] /quote con los mismos parámetros se responda desde la cache de REDIS en lugar de volver a realizar la consultas a OpenWeather y la BBDD. La valided de uno de estos datos cacheados será de 5 min. Con objeto de verificar que la cache funciona, incluir en la respuesta un campo cache como se hizo anteriormente.
 Estructura de carpetas:
 Nivel-4
+Estructuras de carpetas:
         ├── Condiciones
         │   ├── app.py
         │   ├── requirements.txt
@@ -418,7 +419,261 @@ Nivel-4
         │   └── worklog.py
         ├── docker-compose.yml
         └── Dockerfile
-""
+        
+para realizar el Nivel4 se procedio hacer lo siguientes:
+
+docker-compose.yml
+ersion: '3'
+services:
+  Disponibilidad:
+    image: galeanom26/nicaventa:Nivel4D
+    build:
+      context: ./Disponibilidad
+      dockerfile: Dockerfile
+    volumes:
+      - ./Disponibilidad/app:/app
+    ports:
+      - "8000:5000"
+    environment:
+      - FLASK_DEBUG=1
+      - DATABASE_PASSWORD=nicaventaspass
+      - DATABASE_NAME=nicaventasdb
+      - DATABASE_USER=nicaventasuser
+      - DATABASE_HOST=NicaVentas-DB
+      - REDIS_LOCATION=redis
+      - REDIS_PORT=6379
+    command: flask run --host=0.0.0.0
+  Condiciones:
+    image: galeanom26/nicaventa:Nivel4C
+    build:
+      context: ./Condiciones
+      dockerfile: Dockerfile
+    volumes:
+      - ./Condiciones/app:/app
+    ports:
+      - "8001:5000"
+    environment:
+      - FLASK_DEBUG=1
+      - DATABASE_PASSWORD=nicaventaspass
+      - DATABASE_NAME=nicaventasdb
+      - DATABASE_USER=nicaventasuser
+      - DATABASE_HOST=NicaVentas-DB
+      - REDIS_LOCATION=redis
+      - REDIS_PORT=6379
+    command: flask run --host=0.0.0.0
+  NicaVentas-DB:
+    image: mysql:5
+    environment:
+      - MYSQL_ROOT_PASSWORD=nv123
+      - MYSQL_DATABASE=nicaventasdb
+      - MYSQL_USER=nicaventasuser
+      - MYSQL_PASSWORD=nicaventaspass
+    expose:
+      - 3306
+    volumes:
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+  redis:
+    image: redis
+    expose:
+      - 6379
+
+schema.sql
+REATE TABLE IF NOT EXISTS location(
+    country varchar(2) NOT NULL,
+    city varchar(52) NOT NULL,
+    active ENUM('True', 'False') NOT NULL,
+    PRIMARY KEY (country, city)
+) ENGINE=innodb DEFAULT CHARSET=utf8 DEFAULT COLLATE utf8_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS product(
+    sku varchar (7) NOT NULL,
+    description varchar(100) NOT NULL,
+    price decimal(6,2) NOT NULL,
+    PRIMARY KEY (sku)
+) ENGINE=innodb DEFAULT CHARSET=utf8 DEFAULT COLLATE utf8_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS rules(
+    id INT NOT NULL AUTO_INCREMENT,
+    country varchar(2) NOT NULL,
+    city varchar(52) NOT NULL,
+    sku varchar(7) NOT NULL,
+    min_condition int(3) NOT NULL,
+    max_condition int(3) NOT NULL,
+    variation DECIMAL(2,1) NOT NULL,
+    PRIMARY KEY (id), index (country), index(city),
+    FOREIGN KEY (sku) REFERENCES product (sku),
+    foreign key (country, city) REFERENCES location (country, city)
+) ENGINE = innodb;
+
+INSERT INTO product (sku, description, price) VALUES ('AZ00001', 'Paraguas de señora estampado', 10.0);
+INSERT INTO product (sku, description, price) VALUES ('AZ00002', 'Helado de sabor fresa', 10.0);
+
+INSERT INTO rules values(NULL, 'NI', 'Managua', 'AZ00001', 500, 599, 1.5);
+INSERT INTO rules values(NULL, 'NI', 'Managua', 'AZ00002', 500, 599, 0.5);
+INSERT INTO rules values(NULL, 'NI', 'Managua', 'AZ00001', 800, 804, 0.5);
+INSERT INTO rules values(NULL, 'NI', 'Managua', 'AZ00002', 800, 804, 1.5);
+INSERT INTO rules values(NULL, 'NI', 'Leon', 'AZ00001', 500, 599, 1.5);
+INSERT INTO rules values(NULL, 'NI', 'Leon', 'AZ00002', 500, 599, 0.5);
+INSERT INTO rules values(NULL, 'NI', 'Leon', 'AZ00001', 800, 804, 0.5);
+INSERT INTO rules values(NULL, 'NI', 'Leon', 'AZ00002', 800, 804, 1.5);
+
+Dockerfile
+FROM python
+COPY app /app
+RUN pip install -r /app/requirements.txt
+WORKDIR app
+CMD ["python", "app.py"]
+EXPOSE 5000
+
+class Worklog:
+
+    def __init__(self, dbcon, logger):
+        self._dbcon=dbcon
+        self._logger=logger
+
+    def save_location(self, **kwargs):
+        sql = """
+        insert into location 
+            (country, city, active) 
+            values ('{}','{}','{}')
+        """.format(
+                kwargs['country'],
+                kwargs['city'],
+                kwargs['active'])
+        cur = self._dbcon.connection.cursor()
+        cur.execute(sql)
+        self._dbcon.connection.commit()
+        cur.close()
+        self._logger.info(sql)
+
+    def update_location(self, **kwargs):
+        sql = """
+        update location set active='{}' where country='{}' and city='{}'; 
+        """.format(
+                kwargs['active'],
+                kwargs['country'],
+                kwargs['city'])
+        cur = self._dbcon.connection.cursor()
+        rv = cur.execute(sql)
+        self._dbcon.connection.commit()
+        cur.close()
+        self._logger.info(sql)
+        return rv
+
+    def obtain_location(self, country, city):
+        sql = """
+        select * from location where country='{}' and city='{}';
+        """.format(country, city)
+        cur = self._dbcon.connection.cursor()
+        cur.execute(sql)
+        rv = cur.fetchall()
+        cur.close()
+        self._logger.info(rv)
+        return rv
+requirements.txt
+Click==7.0
+Flask==1.1.1
+Flask-MySQL==1.4.0
+Flask-MySQLdb==0.2.0
+itsdangerous==1.1.0
+Jinja2==2.10.1
+MarkupSafe==1.1.1
+mysqlclient==1.4.2.post1
+PyMySQL==0.9.3
+redis==3.2.1
+Werkzeug==0.15.5
+
+app.py
+
+from flask import Flask, jsonify, request, escape
+from flask_mysqldb import MySQL
+import os
+import redis
+from worklog import Worklog
+app = Flask(__name__)
+app.config['MYSQL_HOST'] = os.environ['DATABASE_HOST']
+app.config['MYSQL_USER'] = os.environ['DATABASE_USER']
+app.config['MYSQL_PASSWORD'] = os.environ['DATABASE_PASSWORD']
+app.config['MYSQL_DB'] = os.environ['DATABASE_NAME']
+mysql = MySQL(app)
+
+redis_cli = redis.Redis(host=os.environ['REDIS_LOCATION'], port=os.environ['REDIS_PORT'], charset="utf-8", decode_responses=True)
+
+@app.route('/active')
+def get_location():
+    try:
+        country = request.args.get('country')
+        city = request.args.get('city')
+        key = str(country) + '-' + str(city)
+
+        active = redis_cli.get(escape(key))
+
+        if active:
+            cache = "hit"
+            country = request.args.get('country')
+            city = request.args.get('city')
+            return jsonify({"active": eval(active), "country":country, "city":city, "redis_cache":cache})
+        else:
+            cache = "miss"
+            country = request.args.get('country')
+            city = request.args.get('city')
+            wl = Worklog(mysql, app.logger)
+            result = wl.obtain_location(escape(country), escape(city))
+
+            if result[0][2].find("True") != -1:
+                active = True
+            else:
+                active = False
+
+            redis_cli.set(str(key),escape(active))
+            return jsonify({"active": active, "country":result[0][0], "city":result[0][1], "redis_cache":cache})
+    except:
+        return jsonify({"message":" Datos no Asociados"})
+
+@app.route('/active', methods=['PUT'])
+def put_location():
+    try:
+        payload = request.get_json()
+        country = payload['country']
+        city = payload['city']
+        key = str(country) + '-' + str(city)
+        auth = request.headers.get("Authorization", None)
+
+        if not auth:
+            return jsonify({"message":"No se ha enviado el Token"})
+        elif auth != "Bearer 2234hj234h2kkjjh42kjj2b20asd6918":
+            return jsonify({"message":"Token no Autorizado!"})
+        else:
+            wl = Worklog(mysql, app.logger)
+            result = wl.update_location(**payload)
+
+            if result == 1:
+                redis_cli.delete(escape(key))
+                return jsonify({'result':'Ok', 'update': payload})
+            else:
+                return jsonify({'result':'Fail', 'message': ' Actualizar informacion'})
+    except:
+        return jsonify({'result':'ERROR', 'message':'Error, verifique su request'})
+
+
+@app.route('/active', methods=['POST'])
+def post_location():
+    try:
+        payload = request.get_json()
+        wl = Worklog(mysql, app.logger)
+        wl.save_location(**payload)
+        return jsonify({'result':'Ok', 'Insert': payload})
+    except:
+        return jsonify({'result':'ERROR', 'message':'Error, verifique su request'})
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0')
+    
+
+url Docker Hub
+https://cloud.docker.com/repository/docker/galeanom26/nicaventa
+        
+
 
 
 
