@@ -1,0 +1,30 @@
+version: '3'
+services:
+  NicaVentas:
+    image: galeanom26/nicaventa:N2
+    build:
+      context: ./Disponibilidad
+      dockerfile: Dockerfile
+    volumes:
+      - ./Disponibilidad/app:/app
+    ports:
+      - "8000:5000"
+    environment:
+      - FLASK_DEBUG=1
+      - DATABASE_PASSWORD=nicaventaspass
+      - DATABASE_NAME=nicaventasdb
+      - DATABASE_USER=nicaventasuser
+      - DATABASE_HOST=NicaVentas-DB
+    command: flask run --host=0.0.0.0
+  NicaVentas-DB:
+    image: mysql:5
+    environment:
+      - MYSQL_ROOT_PASSWORD=nv123
+      - MYSQL_DATABASE=nicaventasdb
+      - MYSQL_USER=nicaventasuser
+      - MYSQL_PASSWORD=nicaventaspass
+    expose:
+      - 3306
+    volumes:
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
